@@ -1,0 +1,119 @@
+#Lab 2 analysis — R
+Primary Biliary Cholangitis Data from Mayo Clinical Trial conducted between 1974 and 1984. A total of 424 PBC patients, referred to Mayo Clinic during that ten-year interval, 
+met eligibility criteria for the randomized placebo controlled trial of the drug D-penicillamine. 
+The first 312 cases in the data set participated in the randomized trial and contain largely complete data. 
+The additional 112 cases did not participate in the clinical trial, but consented to have basic measurements recorded and to be followed for survival. 
+Six of those cases were lost to follow-up shortly after diagnosis, so the data here are on an additional 106 cases as well as the 312 randomized participants.
+
+Primmary Biliary Cholangitis (PBC) is an autoimmune disease which leads to the destruction of small bile ducts in the the liver.
+
+Full documentation: PBC dataset (Rdatasets)
+
+```{r load-libraries}
+library(tidyverse)
+```
+
+```{r load-data}
+pbc <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/survival/pbc.csv")
+```
+
+#Exploratory Data Analysis
+```{r EDA}
+head(pbc)
+summary(pbc)
+str(pbc)
+```
+Analysis Questions: 
+1. How does bilirubin and albumin vary by histologic stage? 
+2. Can either bilirubin or albumin be used as a prognostic biomarker? 
+
+#Question  1
+```{r Q1}
+q1 <- pbc %>% 
+  select(id, stage, bili, albumin)
+head(q1)
+glimpse(q1)
+colSums(is.na(q1))
+
+#we see there 6 missing stage rows
+q1 <- q1 %>% filter(!is.na(stage))
+glimpse(q1)
+```
+Now we will compare bilirubin and albumin by PBC stage
+
+```{r PBC-stage}
+q1_table <- q1 %>% 
+  group_by(stage) %>%
+  summarise(
+    bili_median = median(bili),
+    bili_mean = mean(bili),
+    albumin_median = median(albumin),
+    albmin_mean = mean(albumin),
+    n()
+  )
+
+#create boxplots
+ggplot(q1, aes(x = factor(stage), y = bili)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(title = "Serum bilirubin by stage",
+       x = "histologic stage", y = "bilirubin (mg/dl, log scale)")
+
+ggplot(q1, aes(x = factor(stage), y = albumin)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(title = "Serum albumin by stage",
+       x = "histologic stage", y = "albumin (g/dl, log scale)")
+
+```
+
+#Question 2
+```{r q2}
+q2 <- pbc %>%
+  select(id, status, time, bili, albumin) %>%
+  mutate(
+    died = status == 2,
+    # Split into quartiles (Q1 = lowest)
+    bili_group = factor(paste0("Q", ntile(bili, 4))),
+    alb_group = factor(paste0("Q", ntile(albumin, 4)))
+  )
+
+```
+
+```{r prog}
+#Is bilirubin a prognostic biomarker?
+bili_rate <- q2 %>%
+  group_by(bili_group) %>%
+  summarize(died = mean(died, na.rm = TRUE))
+
+#Is albumin a prognostic biomarker?
+alb_rate <- q2 %>%
+  group_by(alb_group) %>%
+  summarize(died = mean(died, na.rm = TRUE))
+
+```
+
+```{r prognostic plots}
+ggplot(bili_rate, aes(x = bili_group, y = died)) +
+  geom_col(fill = "steelblue") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(
+    title = "Death rate by bilirubin quartile",
+    x = "bilirubin quartile (Q1 = lowest)",
+    y = "proportion died"
+  ) +
+  theme_minimal()
+
+ggplot(alb_rate, aes(x = alb_group, y = died)) +
+  geom_col(fill = "steelblue") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(
+    title = "Death rate by albumin quartile",
+    x = "albumin quartile (Q1 = lowest)",
+    y = ""
+  ) +
+  theme_minimal()
+
+```
+
+Based on the analysis we see that Bilirubin slightly increase by PBC stage, while albumin stays realtively steady at each PBC stage. Death Rate was determined by finding the status of those who have been declared dead, splitting bilirubinlalbumin into quartiles and then finding the proportion of those who died in each quartile of bilirubin/albumin amounts. Based on the data we see that as bilirubin increases the rate of death increases, while the inverse is true albumin, with decline death rates as albumin increases.

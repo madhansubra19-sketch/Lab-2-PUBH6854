@@ -1,0 +1,9 @@
+name: lab2
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas
+  - jupyterlab
+  - matplotlib
+prefix: /Users/madhansubramanian/.local/share/mamba/envs/lab2
