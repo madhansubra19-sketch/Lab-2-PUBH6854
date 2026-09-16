@@ -6,4 +6,4 @@ dependencies:
   - pandas
   - jupyterlab
   - matplotlib
-prefix: /Users/madhansubramanian/.local/share/mamba/envs/lab2
+
