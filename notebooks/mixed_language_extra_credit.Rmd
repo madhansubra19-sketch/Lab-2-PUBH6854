@@ -1,0 +1,144 @@
+# Lab 2 analysis — Mixed Language analysis (R and Python)
+Primary Biliary Cholangitis Data from Mayo Clinical Trial conducted between 1974 and 1984. A total of 424 PBC patients, referred to Mayo Clinic during that ten-year interval, 
+met eligibility criteria for the randomized placebo controlled trial of the drug D-penicillamine. 
+The first 312 cases in the data set participated in the randomized trial and contain largely complete data. 
+The additional 112 cases did not participate in the clinical trial, but consented to have basic measurements recorded and to be followed for survival. 
+Six of those cases were lost to follow-up shortly after diagnosis, so the data here are on an additional 106 cases as well as the 312 randomized participants.
+
+Primmary Biliary Cholangitis (PBC) is an autoimmune disease which leads to the destruction of small bile ducts in the the liver.
+
+Full documentation: PBC dataset (Rdatasets)
+
+This document runs a single analysis using a mix of R and Python. The reticulate package lets the two languages share objects: an R object x is available in Python as r.x , and a Python object y is available in R as py$y. 
+
+
+## Loading packages and setup 
+```{r setup, message=FALSE}
+library(tidyverse)
+library(survival)
+library(reticulate)
+use_python("/Users/madhansubramanian/.local/share/mamba/envs/lab2/bin/python", required = TRUE)
+py_config()
+```
+
+```{python setup-python}
+import pandas as pd
+import matplotlib.pyplot as plt
+```
+
+# Loading the data (R)
+
+```{r load-data}
+pbc <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/survival/pbc.csv") %>%
+  mutate(across(where(is.integer), as.numeric))
+dim(pbc)
+head(pbc)
+```
+
+# Exploratory data analysis (Python)
+
+The R data frame pbc is picked up in Python as r.pbc and becomes a pandas DataFrame.
+
+```{python eda}
+pbc = r.pbc
+pbc.info()
+pbc.describe()
+```
+Analysis Questions:
+
+1. How does bilirubin and albumin vary by histologic stage?
+2. Can either bilirubin or albumin be used as a prognostic biomarker?
+
+# Question 1: bilirubin and albumin by stage
+
+## Data preparation and summary table (Python)
+
+```{python q1-prep}
+q1 = pbc[["id", "stage", "bili", "albumin"]]
+q1.isna().sum()
+
+# there are 6 rows with missing stage
+q1 = q1.dropna(subset=["stage"])
+q1.shape
+
+q1_table = q1.groupby("stage")[["bili", "albumin"]].agg(["median", "mean", "count"])
+q1_table
+```
+
+## Boxplots (R)
+
+The filtered Python DataFrame q1 comes back to R as py$q1.
+
+```{r q1-plots, fig.width=5, fig.height=4}
+q1 <- py$q1
+
+ggplot(q1, aes(x = factor(stage), y = bili)) +
+  geom_boxplot() +
+  coord_transform(y = "log10") +
+  labs(title = "Serum bilirubin by stage",
+       x = "histologic stage", y = "bilirubin (mg/dl, log scale)")
+
+ggplot(q1, aes(x = factor(stage), y = albumin)) +
+  geom_boxplot() +
+  coord_transform(y = "log10") +
+  labs(title = "Serum albumin by stage",
+       x = "histologic stage", y = "albumin (g/dl, log scale)")
+```
+
+# Question 2: are bilirubin or albumin prognostic biomarkers?
+
+## Quartiles and death rates (R)
+
+Patients are split into quartiles of each biomarker (Q1 = lowest) and the proportion who died (status == 2) is computed within each quartile.
+
+```{r q2-rates}
+q2 <- pbc %>%
+  select(id, status, time, bili, albumin) %>%
+  mutate(
+    died = status == 2,
+    bili_group = factor(paste0("Q", ntile(bili, 4))),
+    alb_group  = factor(paste0("Q", ntile(albumin, 4)))
+  )
+
+bili_rate <- q2 %>%
+  group_by(bili_group) %>%
+  summarise(died = mean(died, na.rm = TRUE))
+bili_rate
+
+alb_rate <- q2 %>%
+  group_by(alb_group) %>%
+  summarise(died = mean(died, na.rm = TRUE))
+alb_rate
+```
+
+## Death rate plots (Python)
+
+The R summary tables bili_rate and alb_rate come across to Python as r.bili_rate and r.alb_rate.
+
+```{python q2-plots, fig.width=10, fig.height=4}
+bili_rate = r.bili_rate.set_index("bili_group")["died"]
+alb_rate  = r.alb_rate.set_index("alb_group")["died"]
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+
+bili_rate.plot(kind="bar", ax=axes[0])
+axes[0].set_title("Death rate by bilirubin quartile")
+axes[0].set_xlabel("bilirubin quartile (Q1 = lowest)")
+axes[0].set_ylabel("proportion died")
+
+alb_rate.plot(kind="bar", ax=axes[1])
+axes[1].set_title("Death rate by albumin quartile")
+axes[1].set_xlabel("albumin quartile (Q1 = lowest)")
+
+axes[0].set_ylim(0, 1)
+plt.tight_layout()
+plt.show()
+```
+
+# Analysis of data statement
+
+Based on the analysis we see that bilirubin increases by PBC stage, while albumin stays relatively steady at each PBC stage. Death rate was determined by finding the status of those who have been declared dead, splitting bilirubin/albumin into quartiles and then finding the proportion of those who died in each quartile. Based on the data we see that as bilirubin increases the rate of death increases, while the inverse is true for albumin, with declining death rates as albumin increases.
+
+
+
+
