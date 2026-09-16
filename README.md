@@ -42,8 +42,8 @@ Based on the Data, there are two interesting questions that can be analyzed:
 
 
 ## Repo Layout:
-notebooks/   analysis_python.ipynb, analysis_python.html, analysis_R.Rmd, analysis_R.html
-scripts/     fetch_data.py
+notebooks/analysis_python.ipynb, analysis_python.html, analysis_R.Rmd, analysis_R.html
+scripts/  fetch_data.py
 environment.yml, renv.lock, renv/, .Rprofile
 README.md, AI_USAGE.md
 
@@ -89,4 +89,10 @@ The comparison between Python and R implementations can be found at the of each 
 analysis notebook file. 
 ## AI Usage
 To see how AI was used for this Lab please take a look at AI_USAGE.md 
+
+## Mixed Language  analysis Extra credit
+The Notebooks for the the mixed language analysis was added under the notebooks directory
+notebooks/ analysis_python.ipynb, analysis_python.html, analysis_R.Rmd, analysis_R.html, mixed_language_extra_credit.Rmd,mixed_language_extra_credit.html
+
+
 
