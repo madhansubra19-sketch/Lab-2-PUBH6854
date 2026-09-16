@@ -1,4 +1,4 @@
-#Lab 2 analysis — R
+# Lab 2 analysis — R
 Primary Biliary Cholangitis Data from Mayo Clinical Trial conducted between 1974 and 1984. A total of 424 PBC patients, referred to Mayo Clinic during that ten-year interval, 
 met eligibility criteria for the randomized placebo controlled trial of the drug D-penicillamine. 
 The first 312 cases in the data set participated in the randomized trial and contain largely complete data. 
@@ -14,10 +14,11 @@ library(tidyverse)
 ```
 
 ```{r load-data}
-pbc <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/survival/pbc.csv")
+library(survival)
+data(pbc)
 ```
 
-#Exploratory Data Analysis
+# Exploratory Data Analysis
 ```{r EDA}
 head(pbc)
 summary(pbc)
@@ -27,7 +28,7 @@ Analysis Questions:
 1. How does bilirubin and albumin vary by histologic stage? 
 2. Can either bilirubin or albumin be used as a prognostic biomarker? 
 
-#Question  1
+## Question  1
 ```{r Q1}
 q1 <- pbc %>% 
   select(id, stage, bili, albumin)
@@ -55,19 +56,19 @@ q1_table <- q1 %>%
 #create boxplots
 ggplot(q1, aes(x = factor(stage), y = bili)) +
   geom_boxplot() +
-  scale_y_log10() +
+  coord_trans(y = "log10") +
   labs(title = "Serum bilirubin by stage",
        x = "histologic stage", y = "bilirubin (mg/dl, log scale)")
 
 ggplot(q1, aes(x = factor(stage), y = albumin)) +
   geom_boxplot() +
-  scale_y_log10() +
+  coord_transform(y= "log10") +
   labs(title = "Serum albumin by stage",
        x = "histologic stage", y = "albumin (g/dl, log scale)")
 
 ```
 
-#Question 2
+## Question 2
 ```{r q2}
 q2 <- pbc %>%
   select(id, status, time, bili, albumin) %>%
@@ -80,6 +81,7 @@ q2 <- pbc %>%
 
 ```
 
+# Is bilirubin a prognostic biomarker? Or Albumin?
 ```{r prog}
 #Is bilirubin a prognostic biomarker?
 bili_rate <- q2 %>%
@@ -116,4 +118,9 @@ ggplot(alb_rate, aes(x = alb_group, y = died)) +
 
 ```
 
+# Analysis of data statement
 Based on the analysis we see that Bilirubin slightly increase by PBC stage, while albumin stays realtively steady at each PBC stage. Death Rate was determined by finding the status of those who have been declared dead, splitting bilirubinlalbumin into quartiles and then finding the proportion of those who died in each quartile of bilirubin/albumin amounts. Based on the data we see that as bilirubin increases the rate of death increases, while the inverse is true albumin, with decline death rates as albumin increases.
+
+# Closing: Comparison of  R  Markdown Vs  Jupyter  Notebook
+
+When Comparing the two implementations the, I felt that using the R markdown file was faster to write since differentiating between code chunks and actual writing/headings is a bit more defined. In the Jupyer Notebook we have to manually change each chunk to either code or markdown, which is fine but I feel takes a bit more time. One thing I noticed wehn comapring the two notebooks is that the boxplots created for the bilirubin and albumin by stage analysis slightly differed. This is due to how ggplot vs matplotlib handle labeling the axes.. ggplot writes the rick labels in real unit while matplotlib writes them in the powers of ten and picks its own range. 
